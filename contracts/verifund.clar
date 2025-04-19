@@ -18,6 +18,9 @@
 (define-constant ERR-NOT-A-FUNDER u4)
 (define-constant ERR-NOT-OWNER u5)
 (define-constant ERR-CANNOT-ADD-FUNDER u6)
+(define-constant ERR-NOT-ENOUGH-APPROVALS u7)
+(define-constant ERR-MILESTONE-ALREADY-CLAIMED u8)
+(define-constant ERR-INSUFFICIENT-BALANCE u9)
 ;;
 
 
@@ -107,6 +110,30 @@
     )
 )
 
+(define-public (withdraw-milestone-reward (campaign_id uint) (milestone_index uint))
+    (let (
+        (campaign (unwrap! (map-get? campaigns campaign_id) (err ERR-CAMPAIGN-NOT-FOUND)))
+        (milestones (get milestones campaign))
+        (milestone (unwrap! (element-at? milestones milestone_index) (err ERR-MILESTONE-DOES-NOT-EXIST)))
+        (approvals (default-to {approvals: u0, voters: (list )} (map-get? milestone_approvals {campaign_id: campaign_id, milestone_index: milestone_index})))
+        (milestone_amount (get amount milestone))
+        (balance (get balance campaign))
+        (campaign_owner (get owner campaign))
+        (num_approvals (get approvals approvals))
+        (amount_raised (get amount_raised campaign))
+        (amount_to_withdraw (if (or (is-eq milestone_index (- (len milestones) u1)) (< balance milestone_amount)) balance milestone_amount))
+    )
+        (asserts! (is-eq campaign_owner tx-sender) (err ERR-NOT-OWNER))
+        (asserts! (> amount_to_withdraw u0) (err ERR-INSUFFICIENT-BALANCE))
+        (asserts! (>= num_approvals (/ amount_raised u2)) (err ERR-NOT-ENOUGH-APPROVALS))
+        (map-set campaigns campaign_id (merge campaign {
+            balance: (- balance amount_to_withdraw)
+        }))
+        (try! (stx-transfer? amount_to_withdraw (as-contract tx-sender) tx-sender))
+        (ok true)
+    )
+)
+
 ;; read only functions
 ;;
 
@@ -132,4 +159,3 @@
 
 ;; private functions
 ;;
-
