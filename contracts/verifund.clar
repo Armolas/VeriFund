@@ -38,8 +38,7 @@
     owner: principal,
     milestones: (list 10 {
         name: (string-ascii 100),
-        amount: uint,
-        completed: bool
+        amount: uint
         }),
     proposal_link: (optional (string-ascii 200)),
     })
@@ -51,7 +50,7 @@
 
 ;; public functions
 ;;
-(define-public (create_campaign (name (string-ascii 100)) (description (string-ascii 500)) (goal uint) (milestones (list 10 {name: (string-ascii 100), amount: uint, completed: bool})) (proposal_link (optional (string-ascii 200))))
+(define-public (create_campaign (name (string-ascii 100)) (description (string-ascii 500)) (goal uint) (milestones (list 10 {name: (string-ascii 100), amount: uint})) (proposal_link (optional (string-ascii 200))))
     (let ((campaign_id (var-get campaign_count)))
         (begin
             (map-set campaigns campaign_id {
