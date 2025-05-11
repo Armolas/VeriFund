@@ -138,4 +138,33 @@ describe("verifund tests", () => {
 
     expect(result.result).toBeErr(Cl.uint(0));
   });
+
+  it("should allow funders to approve milestones", () => {
+    const fund = simnet.callPublicFn(
+      "verifund",
+      "fund_campaign",
+      [Cl.uint(0), Cl.uint(20000)],
+      address2
+    );
+
+    expect(fund.events[0].event).toBe("stx_transfer_event");
+    expect(fund.events[0].data.amount).toBe("20000");
+
+    const approve = simnet.callPublicFn(
+      "verifund",
+      "approve-milestone",
+      [Cl.uint(0), Cl.uint(0)],
+      address2
+    );
+
+    expect(approve.result).toBeOk(Cl.bool(true));
+
+    const milestone = simnet.getMapEntry("verifund", "milestone_approvals", Cl.tuple({campaign_id: Cl.uint(0), milestone_index: Cl.uint(0)}));
+    expect(milestone).toBeSome(
+      Cl.tuple({
+        approvals: Cl.uint(20000),
+        voters: Cl.list([Cl.address(address2)])
+      })
+    );
+  });
 });
