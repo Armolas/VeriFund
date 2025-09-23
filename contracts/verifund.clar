@@ -143,11 +143,22 @@
             vote: vote,
             timestamp: block-height
         })
-        
+
+        ;; Update milestone votes and campaign
+        (var-set milestone_target_index milestone_index)
+        (let ((updated_milestones (update-milestone-at-index milestones milestone_index
+            (if (is-eq vote "for")
+                (merge milestone {votes_for: (+ (get votes_for milestone) amount_funded)})
+                (merge milestone {votes_against: (+ (get votes_against milestone) amount_funded)})
+            )
+        )))
+            (map-set campaigns campaign_id (merge campaign {milestones: updated_milestones}))
+        )
+
         ;; Update approval tracking
         (map-set milestone_approvals {campaign_id: campaign_id, milestone_index: milestone_index} {
-            approvals: (if (is-eq vote "for") 
-                (+ (get approvals approvals) amount_funded) 
+            approvals: (if (is-eq vote "for")
+                (+ (get approvals approvals) amount_funded)
                 (get approvals approvals)),
             voters: (unwrap! (as-max-len? (append voters tx-sender) u50) (err ERR-MILESTONE-ALREADY-APPROVED))
         })
@@ -200,8 +211,8 @@
                 balance: (- balance amount_to_withdraw),
                 status: new_campaign_status
             }))
-            
-            (try! (stx-transfer? amount_to_withdraw (as-contract tx-sender) tx-sender))
+
+            (try! (as-contract (stx-transfer? amount_to_withdraw tx-sender campaign_owner)))
             (ok true)
         )
     )
@@ -369,22 +380,23 @@
         (goal (get goal campaign))
         (funder_amount (default-to u0 (map-get? funders {campaign_id: campaign_id, funder: tx-sender})))
         (balance (get balance campaign))
+        (refunder tx-sender)
     )
         (asserts! (> funder_amount u0) (err ERR-NOT-A-FUNDER))
         (asserts! (is-eq campaign_status "cancelled") (err ERR-REFUND-NOT-AVAILABLE))
-        
+
         ;; Calculate refund amount proportionally
         (let ((refund_amount (/ (* funder_amount balance) amount_raised)))
             (asserts! (> refund_amount u0) (err ERR-INSUFFICIENT-BALANCE))
-            
+
             ;; Remove funder and update campaign
-            (map-delete funders {campaign_id: campaign_id, funder: tx-sender})
+            (map-delete funders {campaign_id: campaign_id, funder: refunder})
             (map-set campaigns campaign_id (merge campaign {
                 balance: (- balance refund_amount),
                 amount_raised: (- amount_raised funder_amount)
             }))
-            
-            (try! (stx-transfer? refund_amount (as-contract tx-sender) tx-sender))
+
+            (try! (as-contract (stx-transfer? refund_amount tx-sender refunder)))
             (ok refund_amount)
         )
     )
