@@ -7,12 +7,18 @@
   "scripts": {
     "test": "vitest run",
     "test:report": "vitest run -- --coverage --costs",
-    "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\""
+    "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\"",
+    "test:fuzz": "npx rv . verifund test --runs=1000",
+    "test:fuzz:quick": "npx rv . verifund test --runs=100",
+    "test:invariants": "npx rv . verifund invariant --runs=500",
+    "test:invariants:quick": "npx rv . verifund invariant --runs=100",
+    "test:all": "npm run test && npm run test:fuzz && npm run test:invariants"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@hirosystems/clarinet-sdk": "^2.3.2",
+    "@stacks/rendezvous": "^0.10.0",
     "@stacks/transactions": "^6.12.0",
     "chokidar-cli": "^3.0.0",
     "esbuild": "^0.25.9",
