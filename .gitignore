@@ -11,3 +11,7 @@ coverage
 *.info
 costs-reports.json
 node_modules
+DS_Store
+.vscode
+.env
+.env.local
