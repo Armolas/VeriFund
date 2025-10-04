@@ -66,6 +66,72 @@
 (define-map funder_votes {campaign_id: uint, milestone_index: uint, funder: principal} {vote: (string-ascii 10), timestamp: uint})
 ;;
 
+;; private functions
+;;
+
+;; Data vars for milestone updates
+(define-data-var milestone_update_index uint u0)
+(define-data-var milestone_target_index uint u0)
+(define-data-var milestone_new_milestone {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint} {name: "", description: "", amount: u0, status: "", completion_date: none, votes_for: u0, votes_against: u0, vote_deadline: u0})
+
+(define-private (add-milestone-defaults (milestone {name: (string-ascii 100), description: (string-ascii 500), amount: uint}))
+    {
+        name: (get name milestone),
+        description: (get description milestone),
+        amount: (get amount milestone),
+        status: "pending",
+        completion_date: none,
+        votes_for: u0,
+        votes_against: u0,
+        vote_deadline: u0
+    }
+)
+
+(define-private (update-milestone-helper
+    (milestone {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint})
+)
+    (let (
+        (target_index (var-get milestone_target_index))
+        (current_index (var-get milestone_update_index))
+        (new_milestone (var-get milestone_new_milestone))
+    )
+        (var-set milestone_update_index (+ current_index u1))
+        (if (is-eq current_index target_index)
+            new_milestone
+            milestone
+        )
+    )
+)
+
+(define-private (update-milestone-at-index
+    (milestones (list 10 {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint}))
+    (target_index uint)
+    (new_milestone {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint})
+)
+    (begin
+        (var-set milestone_update_index u0)
+        (var-set milestone_target_index target_index)
+        (var-set milestone_new_milestone new_milestone)
+        (map update-milestone-helper milestones)
+    )
+)
+
+(define-private (count-completed-helper
+    (milestone {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint})
+    (count uint)
+)
+    (if (is-eq (get status milestone) "completed")
+        (+ count u1)
+        count
+    )
+)
+
+(define-private (count-completed-milestones
+    (milestones (list 10 {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint}))
+)
+    (fold count-completed-helper milestones u0)
+)
+
 ;; public functions
 ;;
 (define-public (create_campaign 
@@ -304,70 +370,6 @@
             )
             (err ERR-CAMPAIGN-NOT-FOUND)
         )
-    )
-)
-
-;; private functions
-;;
-(define-private (add-milestone-defaults (milestone {name: (string-ascii 100), description: (string-ascii 500), amount: uint}))
-    {
-        name: (get name milestone),
-        description: (get description milestone),
-        amount: (get amount milestone),
-        status: "pending",
-        completion_date: none,
-        votes_for: u0,
-        votes_against: u0,
-        vote_deadline: u0
-    }
-)
-
-(define-private (update-milestone-at-index 
-    (milestones (list 10 {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint}))
-    (target_index uint)
-    (new_milestone {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint})
-)
-    (begin
-        (var-set milestone_update_index u0)
-        (var-set milestone_target_index target_index)
-        (var-set milestone_new_milestone new_milestone)
-        (map update-milestone-helper milestones)
-    )
-)
-
-(define-data-var milestone_update_index uint u0)
-(define-data-var milestone_target_index uint u0)
-(define-data-var milestone_new_milestone {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint} {name: "", description: "", amount: u0, status: "", completion_date: none, votes_for: u0, votes_against: u0, vote_deadline: u0})
-
-(define-private (update-milestone-helper 
-    (milestone {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint})
-)
-    (let (
-        (target_index (var-get milestone_target_index))
-        (current_index (var-get milestone_update_index))
-        (new_milestone (var-get milestone_new_milestone))
-    )
-        (var-set milestone_update_index (+ current_index u1))
-        (if (is-eq current_index target_index)
-            new_milestone
-            milestone
-        )
-    )
-)
-
-(define-private (count-completed-milestones 
-    (milestones (list 10 {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint}))
-)
-    (fold count-completed-helper milestones u0)
-)
-
-(define-private (count-completed-helper 
-    (milestone {name: (string-ascii 100), description: (string-ascii 500), amount: uint, status: (string-ascii 20), completion_date: (optional uint), votes_for: uint, votes_against: uint, vote_deadline: uint})
-    (count uint)
-)
-    (if (is-eq (get status milestone) "completed")
-        (+ count u1)
-        count
     )
 )
 
